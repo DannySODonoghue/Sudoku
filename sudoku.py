@@ -268,6 +268,25 @@ class Square:
                                                    (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
 
 
+def drawLegend(screen):
+    font = pygame.font.SysFont("Comicsans", 60)
+    legFont = pygame.font.SysFont("Comicsans", 25)
+    keyFont = pygame.font.SysFont("Comicsans", 15)
+
+    titleSurface = font.render("Sudoku", True, 'Black')
+    legendSurface = legFont.render("Legend:", True, 'Black')
+    key1Surface = keyFont.render("- c: Auto complete sudoku", True, 'Black')
+    key2Surface = keyFont.render("- d: Delete selected value", True, 'Black')
+    key3Surface = keyFont.render(
+        "- Return: Enter selected value", True, 'Black')
+
+    screen.blit(titleSurface, (300, 30))
+    screen.blit(legendSurface, (50, 10))
+    screen.blit(key1Surface, (50, 50))
+    screen.blit(key2Surface, (50, 70))
+    screen.blit(key3Surface, (50, 90))
+
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode((800, 800))
@@ -329,6 +348,7 @@ def main():
 
         screen.fill((255, 255, 255))
         sudoku.drawSudoku()
+        drawLegend(screen)
         pygame.display.update()
 
 
