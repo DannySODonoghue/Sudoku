@@ -48,28 +48,30 @@ class Sudoku:
                     self.rows[i].add(self.model[i][k])
                     self.boxes[(i//3, k//3)].add(self.model[i][k])
 
-    def set(self, num):
-        i, j = self.selectedSqare
+    def setValue(self, num):
+        i, j = self.selectedSquare
         if self.squares[i][j].value == 0:
             self.squares[i][j].changeValue(num)
-            self.modelUpdate()
 
-            if self.isValid(i, j, self.model, self.modelRows, self.modelCols, self.modelBoxs) and self.testSolve():
+            if self.isValid(i, j, num, self.rows, self.columns, self.boxes) and self.testSolve():
+                self.modelUpdate()
                 return True
             else:
                 self.squares[i][j].changeValue(0)
-                self.squares[i][j].tValue(0)
+                self.squares[i][j].changeTest(None)
                 self.modelUpdate()
                 return False
 
-    def selectedNumber(self, value):
-        i, j = self.selectedSquare
-        self.squares[i][j].tValue(value)
-
-    def loseNumber(self):
+    def testSelectedNumber(self, value):
         i, j = self.selectedSquare
         if self.squares[i][j].value == 0:
-            self.squares[i][j].tValue(0)
+            self.squares[i][j].changeTest(value)
+
+    def clearNumber(self):
+        i, j = self.selectedSquare
+        if self.squares[i][j].value == 0:
+            self.squares[i][j].changeTest(None)
+            self.modelUpdate()
 
     def selectSquare(self, r, c):
         for i in range(9):
@@ -83,23 +85,14 @@ class Sudoku:
         test solves
 
         """
-
+        self.modelUpdate()
         cols = self.columns.copy()
         rows = self.rows.copy()
         boxes = self.boxes.copy()
         emp = self.empty.copy()
         board = self.model.copy()
 
-        for i in range(9):
-            for k in range(9):
-                if board[i][k] == 0:
-                    emp.append([i, k])
-                else:
-                    cols[k].add(board[i][k])
-                    rows[i].add(board[i][k])
-                    boxes[(i//3, k//3)].add(board[i][k])
-
-        def solve(self, index):
+        def solve(index):
             """
             solves sudoku using backtracking
             in: empty => List[List[]] deque of all unfilled boxes where each item in list is a sublist of row and column of unfilled box
@@ -113,7 +106,7 @@ class Sudoku:
             # recursive case
             for i in range(1, 10):
                 board[r][c] = i
-                if self.isValid(r, c, board, rows, cols, boxes):
+                if self.isValid(r, c, i, rows, cols, boxes):
                     cols[c].add(board[r][c])
                     rows[r].add(board[r][c])
                     boxes[(r//3, c//3)].add(board[r][c])
@@ -127,15 +120,15 @@ class Sudoku:
 
         return solve(0)
 
-    def isValid(self, i, k, board, rows, cols, boxes):
+    def isValid(self, i, k, num, rows, cols, boxes):
         """
         checks to see if the value at a particular spot in the self.board violates the principles of sudoku
         in: i, k => integers that correspond to a row and column of the 2d self.board
         return: boolean value stating whether the value violates the sudoku principles or not
         """
-        if (board[i][k] in rows[i] or
-            board[i][k] in cols[k] or
-                board[i][k] in boxes[(i//3, k//3)]):
+        if (num in rows[i] or
+            num in cols[k] or
+                num in boxes[(i//3, k//3)]):
             return False
         return True
 
@@ -153,6 +146,60 @@ class Sudoku:
             for j in range(9):
                 self.squares[i][j].drawSquare(self.screen)
 
+    def clickBox(self, position):
+        if position[0] > 130 and position[0] < 670 and position[1] > 130 and position[1] < 670:
+            return ((position[1] - 130) // 60, (position[0] - 130) // 60)
+        else:
+            return False
+
+    def sudokuDone(self):
+        for i in range(9):
+            for j in range(9):
+                if self.squares[i][j].value == 0:
+                    return False
+        return True
+
+    def completeModel(self):
+        self.modelUpdate()
+
+        def solveModel(index):
+
+            if index >= len(self.empty):
+                return True
+            r, c = self.empty[index]
+
+            # recursive case
+            for i in range(1, 10):
+                self.model[r][c] = i
+                if self.isValid(r, c, i, self.rows, self.columns, self.boxes):
+                    self.squares[r][c].changeValue(i)
+                    self.squares[r][c].updateGUIChange(self.screen, True)
+                    self.model = [
+                        [self.squares[i][j].value for j in range(9)] for i in range(9)]
+                    self.columns[c].add(self.model[r][c])
+                    self.rows[r].add(self.model[r][c])
+                    self.boxes[(r//3, c//3)].add(self.model[r][c])
+                    pygame.display.update()
+                    pygame.time.delay(100)
+
+                    if solveModel(index + 1):
+                        return True
+
+                    self.columns[c].remove(self.model[r][c])
+                    self.rows[r].remove(self.model[r][c])
+                    self.boxes[(r//3, c//3)].remove(self.model[r][c])
+                    self.model[r][c] = 0
+                    self.squares[r][c].changeValue(0)
+                    self.squares[r][c].updateGUIChange(self.screen, False)
+                    self.model = [
+                        [self.squares[i][j].value for j in range(9)] for i in range(9)]
+                    pygame.display.update()
+                    pygame.time.delay(100)
+
+            return False
+
+        solveModel(0)
+
 
 class Square:
 
@@ -160,30 +207,65 @@ class Square:
         self.value = value
         self.row = row
         self.col = col
-        self.t = 0
+        self.test = None
         self.selectedSquare = False
+        self.guess = None
 
     def changeValue(self, value):
         self.value = value
 
-    def tValue(self, value):
-        self.t = value
+    def changeTest(self, value):
+        self.test = value
 
     def drawSquare(self, screen):
         font = pygame.font.SysFont("Arial", 40)
 
         if self.selectedSquare:
-            pygame.draw.rect(screen, (160, 32, 240), (130 +
-                             (60 * self.row), 130 + (60 * self.col), 60, 60), 1)
+            if self.guess == True:
+                self.guess == None
+                pygame.draw.rect(screen, (0, 255, 0), (130 +
+                                                       (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
+            elif self.guess == False:
+                self.guess == None
+                pygame.draw.rect(screen, (255, 0, 0), (130 +
+                                                       (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
+            else:
+                pygame.draw.rect(screen, (160, 32, 240), (130 +
+                                                          (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
+
+        if self.guess == True:
+            self.guess == None
+            pygame.draw.rect(screen, (0, 255, 0), (130 +
+                                                   (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
+        elif self.guess == False:
+            self.guess == None
+            pygame.draw.rect(screen, (255, 0, 0), (130 +
+                                                   (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
 
         if self.value != 0:
             num = font.render(str(self.value), True, (0, 0, 0))
-            screen.blit(num, (130 + (60 * self.row) +
-                        20, 130 + (60 * self.col) + 10))
-        elif self.t != 0 and self.value == 0:
-            num = font.render(str(self.t), True, (160, 32, 240))
-            screen.blit(num, (130 + (60 * self.row) +
-                        20, 130 + (60 * self.col) + 10))
+            screen.blit(num, (130 + (60 * self.col) +
+                        20, 130 + (60 * self.row) + 10))
+        elif self.test and self.value == 0:
+            num = font.render(str(self.test), True, (160, 32, 240))
+            screen.blit(num, (130 + (60 * self.col) +
+                        20, 130 + (60 * self.row) + 10))
+
+    def updateGUIChange(self, screen, val):
+        pygame.draw.rect(screen, (255, 255, 255), ((130 +
+                                                   (60 * self.col), 130 + (60 * self.row), 60, 60)), 0)
+        font = pygame.font.SysFont("Arial", 40)
+        if self.value != 0:
+            num = font.render(str(self.value), True, (0, 0, 0))
+            screen.blit(num, (130 + (60 * self.col) +
+                        20, 130 + (60 * self.row) + 10))
+
+        if val:
+            pygame.draw.rect(screen, (0, 255, 0), (130 +
+                                                   (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
+        else:
+            pygame.draw.rect(screen, (255, 0, 0), (130 +
+                                                   (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
 
 
 def main():
@@ -192,21 +274,62 @@ def main():
     screen.fill((255, 255, 255))
     pygame.display.set_caption('Sudoku')
     sudoku = Sudoku(screen)
-    clock = pygame.time.Clock()
-    font = pygame.font.Font(None, 50)
-    # text_surface = font.render()
 
     while True:
+        key = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
 
-        # screen.blit(, (0, 0))
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                i, j = pygame.mouse.get_pos()
+                if sudoku.clickBox((i, j)):
+                    clickedBox = sudoku.clickBox((i, j))
+                    sudoku.selectSquare(clickedBox[0], clickedBox[1])
 
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    key = 1
+                if event.key == pygame.K_2:
+                    key = 2
+                if event.key == pygame.K_3:
+                    key = 3
+                if event.key == pygame.K_4:
+                    key = 4
+                if event.key == pygame.K_5:
+                    key = 5
+                if event.key == pygame.K_6:
+                    key = 6
+                if event.key == pygame.K_7:
+                    key = 7
+                if event.key == pygame.K_8:
+                    key = 8
+                if event.key == pygame.K_9:
+                    key = 9
+                if sudoku.selectedSquare:
+                    if event.key == pygame.K_d:
+                        sudoku.clearNumber()
+                    if event.key == pygame.K_RETURN:
+                        i, j = sudoku.selectedSquare
+                        if sudoku.squares[i][j].test:
+                            key = None
+                            if sudoku.setValue(sudoku.squares[i][j].test):
+                                sudoku.squares[i][j].guess = True
+                            else:
+                                sudoku.squares[i][j].guess = False
+                        if sudoku.sudokuDone():
+                            print("Complete!")
+
+                if event.key == pygame.K_c:
+                    sudoku.completeModel()
+
+        if key and sudoku.selectedSquare:
+            sudoku.testSelectedNumber(key)
+
+        screen.fill((255, 255, 255))
         sudoku.drawSudoku()
         pygame.display.update()
-        clock.tick(60)
 
 
 main()
