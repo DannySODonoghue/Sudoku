@@ -229,9 +229,8 @@ class Square:
                 self.guess == None
                 pygame.draw.rect(screen, (255, 0, 0), (130 +
                                                        (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
-            else:
-                pygame.draw.rect(screen, (160, 32, 240), (130 +
-                                                          (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
+            pygame.draw.rect(screen, (250, 164, 52), (130 +
+                                                      (60 * self.col) + 2.5, 130 + (60 * self.row) + 2.5, 55, 55))
 
         if self.guess == True:
             self.guess == None
