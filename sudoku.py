@@ -133,6 +133,11 @@ class Sudoku:
         return True
 
     def drawSudoku(self):
+        if self.selectedSquare:
+            i, j = self.selectedSquare
+            row, col = self.squares[i][j].row, self.squares[i][j].col
+            pygame.draw.rect(self.screen, (250, 164, 52), (130 +
+                                                           (60 * col), 130 + (60 * row), 60, 60))
         pygame.draw.rect(self.screen, (0, 0, 0), (130, 130, 540, 540), 6)
         for i in range(9):
             for j in range(9):
@@ -229,8 +234,6 @@ class Square:
                 self.guess == None
                 pygame.draw.rect(screen, (255, 0, 0), (130 +
                                                        (60 * self.col), 130 + (60 * self.row), 60, 60), 1)
-            pygame.draw.rect(screen, (250, 164, 52), (130 +
-                                                      (60 * self.col) + 2.5, 130 + (60 * self.row) + 2.5, 55, 55))
 
         if self.guess == True:
             self.guess == None
@@ -246,7 +249,7 @@ class Square:
             screen.blit(num, (130 + (60 * self.col) +
                         20, 130 + (60 * self.row) + 10))
         elif self.test and self.value == 0:
-            num = font.render(str(self.test), True, (160, 32, 240))
+            num = font.render(str(self.test), True, (0, 0, 0))
             screen.blit(num, (130 + (60 * self.col) +
                         20, 130 + (60 * self.row) + 10))
 
@@ -287,11 +290,15 @@ def drawLegend(screen):
 
 
 def main():
+
     pygame.init()
     screen = pygame.display.set_mode((800, 800))
     screen.fill((255, 255, 255))
     pygame.display.set_caption('Sudoku')
     sudoku = Sudoku(screen)
+    font = pygame.font.SysFont("Times New Roman", 60)
+    completeSurface = font.render("Complete!", True, 'Black')
+    complete = False
 
     while True:
         key = None
@@ -326,6 +333,20 @@ def main():
                 if event.key == pygame.K_9:
                     key = 9
                 if sudoku.selectedSquare:
+                    i, j = sudoku.selectedSquare
+                    if event.key == pygame.K_DOWN:
+                        if i + 1 < 9:
+                            sudoku.selectSquare(i + 1, j)
+                    if event.key == pygame.K_UP:
+                        if i - 1 >= 0:
+                            sudoku.selectSquare(i - 1, j)
+                    if event.key == pygame.K_LEFT:
+                        if j - 1 >= 0:
+                            sudoku.selectSquare(i, j - 1)
+                    if event.key == pygame.K_RIGHT:
+                        if j + 1 < 9:
+                            sudoku.selectSquare(i, j + 1)
+
                     if event.key == pygame.K_d:
                         sudoku.clearNumber()
                     if event.key == pygame.K_RETURN:
@@ -338,6 +359,7 @@ def main():
                                 sudoku.squares[i][j].guess = False
                         if sudoku.sudokuDone():
                             print("Complete!")
+                            complete = True
 
                 if event.key == pygame.K_c:
                     sudoku.completeModel()
@@ -348,6 +370,9 @@ def main():
         screen.fill((255, 255, 255))
         sudoku.drawSudoku()
         drawLegend(screen)
+        if complete:
+            screen.fill((255, 255, 255))
+            screen.blit(completeSurface, (300, 300))
         pygame.display.update()
 
 
